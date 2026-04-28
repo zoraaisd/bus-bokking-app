@@ -1,0 +1,133 @@
+import { BoardingPoint } from '../types';
+
+export const boardingPoints: BoardingPoint[] = [
+  {
+    id: 'bp-001',
+    name: 'Koyambedu CMBT',
+    address: 'Chennai Mofussil Bus Terminus, Koyambedu',
+    time: '21:30',
+    landmark: 'Near Koyambedu Market',
+  },
+  {
+    id: 'bp-002',
+    name: 'Vadapalani',
+    address: 'Vadapalani Bus Stop, Arcot Road',
+    time: '21:45',
+    landmark: 'Opposite Vadapalani Murugan Temple',
+  },
+  {
+    id: 'bp-003',
+    name: 'Tambaram',
+    address: 'Tambaram Bus Stand, GST Road',
+    time: '22:00',
+    landmark: 'Near Tambaram Railway Station',
+  },
+  {
+    id: 'bp-004',
+    name: 'Chrompet',
+    address: 'Chrompet Bus Stop, GST Road',
+    time: '22:10',
+    landmark: 'Near Chrompet Arch',
+  },
+  {
+    id: 'bp-005',
+    name: 'Guindy',
+    address: 'Guindy Bus Stop, Mount-Poonamallee Rd',
+    time: '22:20',
+    landmark: 'Near Guindy Industrial Estate',
+  },
+  {
+    id: 'bp-006',
+    name: 'Pallavaram',
+    address: 'Pallavaram Bus Stand, GST Road',
+    time: '22:15',
+    landmark: 'Near Pallavaram Market',
+  },
+  {
+    id: 'bp-007',
+    name: 'Velachery',
+    address: 'Velachery Main Road Bus Stop',
+    time: '22:30',
+    landmark: 'Near Velachery MRTS Station',
+  },
+  {
+    id: 'bp-008',
+    name: 'Sholinganallur',
+    address: 'Sholinganallur Junction, Old Mahabalipuram Road',
+    time: '22:45',
+    landmark: 'Near Sholinganallur Signal',
+  },
+  {
+    id: 'bp-009',
+    name: 'Perungudi',
+    address: 'Perungudi Bus Stop, OMR',
+    time: '22:50',
+    landmark: 'Near Perungudi Toll',
+  },
+  {
+    id: 'bp-010',
+    name: 'Kelambakkam',
+    address: 'Kelambakkam Junction, OMR',
+    time: '23:05',
+    landmark: 'Near Navalur Signal',
+  },
+];
+
+export const droppingPoints: BoardingPoint[] = [
+  {
+    id: 'dp-001',
+    name: 'Majestic Bus Stand',
+    address: 'Kempegowda Bus Station, Majestic, Bangalore',
+    time: '05:30',
+    landmark: 'Near Majestic Metro Station',
+  },
+  {
+    id: 'dp-002',
+    name: 'Shivajinagar',
+    address: 'Shivajinagar Bus Terminal, Bangalore',
+    time: '05:45',
+    landmark: 'Near Shivajinagar Circle',
+  },
+  {
+    id: 'dp-003',
+    name: 'Silk Board',
+    address: 'Silk Board Junction, Hosur Road',
+    time: '06:00',
+    landmark: 'Near Silk Board Signal',
+  },
+  {
+    id: 'dp-004',
+    name: 'Electronic City',
+    address: 'Electronic City Phase 1, Hosur Road',
+    time: '06:15',
+    landmark: 'Near Infosys Gate',
+  },
+  {
+    id: 'dp-005',
+    name: 'Jayanagar',
+    address: 'Jayanagar 4th Block Bus Stop',
+    time: '05:50',
+    landmark: 'Near Jayanagar Shopping Complex',
+  },
+  {
+    id: 'dp-006',
+    name: 'Marathahalli',
+    address: 'Marathahalli Bridge Bus Stop, Outer Ring Road',
+    time: '06:20',
+    landmark: 'Near Marathahalli Bridge',
+  },
+  {
+    id: 'dp-007',
+    name: 'Whitefield',
+    address: 'Whitefield Main Road Bus Stop',
+    time: '06:45',
+    landmark: 'Near ITPL Main Gate',
+  },
+  {
+    id: 'dp-008',
+    name: 'Hebbal',
+    address: 'Hebbal Flyover Bus Stop',
+    time: '05:40',
+    landmark: 'Near Hebbal Lake',
+  },
+];
