@@ -51,7 +51,7 @@ export default function HomePage() {
       {/* ── HERO ────────────────────────────────────────────────────────── */}
       <div style={{ background: 'linear-gradient(135deg,#DC2626 0%,#B91C1C 55%,#9F1239 100%)', padding: '36px 24px 100px', width: W, boxSizing: 'border-box' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
             <div>
               <p style={{ color: '#FCA5A5', fontSize: 13, fontFamily: 'Inter' }}>{g}</p>
               <h1 style={{ color: '#fff', fontSize: 28, fontWeight: 800, fontFamily: 'Poppins', margin: '4px 0' }}>
@@ -59,7 +59,7 @@ export default function HomePage() {
               </h1>
               <p style={{ color: '#FECACA', fontSize: 14, fontFamily: 'Inter' }}>Where are you heading today?</p>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            {/* <div style={{ display: 'flex', gap: 8 }}>
               {[
                 { v: '50K+', l: 'Trips Booked' },
                 { v: '200+', l: 'Routes' },
@@ -70,7 +70,7 @@ export default function HomePage() {
                   <p style={{ color: '#FCA5A5', fontFamily: 'Inter', fontSize: 11 }}>{s.l}</p>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
 
           {/* Tab */}
@@ -93,18 +93,14 @@ export default function HomePage() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'end' }}>
                   <div style={{ flex: '1 1 160px' }}>
                     <Lbl>From</Lbl>
-                    <select value={busS.from} onChange={(e) => setBusS((p) => ({ ...p, from: e.target.value }))} id="bus-from" style={inp}>
-                      {cities.map((c) => <option key={c}>{c}</option>)}
-                    </select>
+                    <SearchableSelect options={cities} value={busS.from} onChange={(val) => setBusS((p) => ({ ...p, from: val }))} placeholder="Select City" />
                   </div>
                   <motion.button whileTap={{ rotate: 180, scale: 0.85 }} onClick={() => setBusS((p) => ({ ...p, from: p.to, to: p.from }))} id="bus-swap" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid #E5E7EB', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 0 }}>
                     <ArrowLeftRight size={15} color="#6B7280" />
                   </motion.button>
                   <div style={{ flex: '1 1 160px' }}>
                     <Lbl>To</Lbl>
-                    <select value={busS.to} onChange={(e) => setBusS((p) => ({ ...p, to: e.target.value }))} id="bus-to" style={inp}>
-                      {cities.map((c) => <option key={c}>{c}</option>)}
-                    </select>
+                    <SearchableSelect options={cities} value={busS.to} onChange={(val) => setBusS((p) => ({ ...p, to: val }))} placeholder="Select City" />
                   </div>
                   <div style={{ flex: '1 1 160px' }}>
                     <Lbl>Travel Date</Lbl>
@@ -118,18 +114,14 @@ export default function HomePage() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'end' }}>
                   <div style={{ flex: '1 1 140px' }}>
                     <Lbl>From</Lbl>
-                    <select value={flyS.from} id="flight-from" onChange={(e) => { const o = flightCities.find((x) => x.city === e.target.value); if (o) setFlyS((p) => ({ ...p, from: o.city, fromCode: o.code })); }} style={inp}>
-                      {flightCities.map((o) => <option key={o.code} value={o.city}>{o.city} ({o.code})</option>)}
-                    </select>
+                    <SearchableSelect isFlight options={flightCities} value={flyS.from} onChange={(val) => setFlyS((p) => ({ ...p, from: val.city, fromCode: val.code }))} placeholder="Select City" />
                   </div>
                   <motion.button whileTap={{ rotate: 180, scale: 0.85 }} onClick={() => setFlyS((p) => ({ ...p, from: p.to, fromCode: p.toCode, to: p.from, toCode: p.fromCode }))} id="flight-swap" style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid #E5E7EB', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <ArrowLeftRight size={15} color="#6B7280" />
                   </motion.button>
                   <div style={{ flex: '1 1 140px' }}>
                     <Lbl>To</Lbl>
-                    <select value={flyS.to} id="flight-to" onChange={(e) => { const o = flightCities.find((x) => x.city === e.target.value); if (o) setFlyS((p) => ({ ...p, to: o.city, toCode: o.code })); }} style={inp}>
-                      {flightCities.map((o) => <option key={o.code} value={o.city}>{o.city} ({o.code})</option>)}
-                    </select>
+                    <SearchableSelect isFlight options={flightCities} value={flyS.to} onChange={(val) => setFlyS((p) => ({ ...p, to: val.city, toCode: val.code }))} placeholder="Select City" />
                   </div>
                   <div style={{ flex: '1 1 140px' }}>
                     <Lbl>Date</Lbl>
@@ -141,7 +133,7 @@ export default function HomePage() {
                       <span>{flyS.travellers} Traveller(s) · {flyS.cabinClass}</span>
                     </div>
                   </div>
-                  <SBtn id="flight-search-btn" label="Search Flights" onClick={() => navigate('/flight/results', { state: flyS })} />
+                  <SBtn id="flight-search-btn" label="Search Flights" onClick={() => { if (flyS.from === flyS.to) { toast.error('Same city!'); return; } navigate('/flight/results', { state: flyS }) }} />
                 </div>
               </motion.div>
             )}
@@ -248,7 +240,7 @@ export default function HomePage() {
       <div style={{ maxWidth: 1100, margin: '32px auto 0', padding: '0 24px', boxSizing: 'border-box', width: W }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <h2 style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 18, color: '#111827' }}>Offers & Deals</h2>
-          <span style={{ fontFamily: 'Inter', fontSize: 13, color: '#DC2626', fontWeight: 600, cursor: 'pointer' }}>View all</span>
+          {/* <span style={{ fontFamily: 'Inter', fontSize: 13, color: '#DC2626', fontWeight: 600, cursor: 'pointer' }}>View all</span> */}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
           {offers.map((o, i) => (
@@ -401,6 +393,68 @@ function ClassPill({ label, sel, onClick }: { label: string; sel: boolean; onCli
   return (
     <div onClick={onClick} style={{ padding: '10px 18px', borderRadius: 24, border: `1px solid ${sel ? '#EF4444' : '#E5E7EB'}`, background: sel ? '#EF4444' : '#fff', color: sel ? '#fff' : '#374151', fontFamily: 'Inter', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}>
       {label}
+    </div>
+  );
+}
+
+function SearchableSelect({ options, value, onChange, placeholder, isFlight }: { options: any[], value: string, onChange: (val: any) => void, placeholder: string, isFlight?: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setQuery('');
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filtered = options.filter(o => {
+    const text = isFlight ? `${o.city} ${o.code}` : o;
+    return text.toLowerCase().includes(query.toLowerCase());
+  });
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative' }}>
+      <div onClick={() => setIsOpen(true)} style={{ ...inp, cursor: 'text', display: 'flex', alignItems: 'center' }}>
+        {isOpen ? (
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search..."
+            style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontFamily: 'Inter', fontSize: 14 }}
+          />
+        ) : (
+          <span style={{ color: value ? '#111827' : '#9CA3AF' }}>{value || placeholder}</span>
+        )}
+      </div>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.ul
+            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+            style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', border: '1px solid #F3F4F6', maxHeight: 240, overflowY: 'auto', zIndex: 60, padding: 0, margin: '4px 0 0', listStyle: 'none' }}
+          >
+            {filtered.length === 0 ? (
+              <li style={{ padding: '12px 16px', color: '#6B7280', fontFamily: 'Inter', fontSize: 13, textAlign: 'center' }}>No results</li>
+            ) : filtered.map((o, i) => (
+              <li
+                key={isFlight ? o.code : o}
+                onClick={() => { onChange(o); setIsOpen(false); setQuery(''); }}
+                style={{ padding: '12px 16px', borderBottom: i === filtered.length - 1 ? 'none' : '1px solid #F9FAFB', cursor: 'pointer', fontFamily: 'Inter', fontSize: 14, color: '#111827', transition: 'background 0.2s' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#F9FAFB'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+              >
+                {isFlight ? `${o.city} (${o.code})` : o}
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

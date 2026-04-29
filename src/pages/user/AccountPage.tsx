@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Phone, Ticket, LogOut, ChevronRight, Shield, Bell, HelpCircle, User, MapPin, CreditCard, Settings, Star } from 'lucide-react';
 import { BottomNav } from '../../components/layout/BottomNav';
 import { useAuthStore } from '../../store/authStore';
@@ -14,6 +14,8 @@ export default function AccountPage() {
   const totalSpend = useBookingStore((s) => s.getTotalRevenue());
   const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
 
+  const [activeView, setActiveView] = useState<string | null>(null);
+
   const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
 
   const menuGroups = [
@@ -21,22 +23,22 @@ export default function AccountPage() {
       title: 'Travel',
       items: [
         { id: 'menu-bookings', icon: Ticket, color: '#DC2626', bg: '#FEF2F2', label: 'My Bookings', sub: `${bookings.length} total booking(s)`, action: () => navigate('/bookings') },
-        { id: 'menu-trips', icon: MapPin, color: '#F97316', bg: '#FFF7ED', label: 'Saved Routes', sub: 'Your favourite destinations', action: () => {} },
+        { id: 'menu-trips', icon: MapPin, color: '#F97316', bg: '#FFF7ED', label: 'Saved Routes', sub: 'Your favourite destinations', action: () => setActiveView('menu-trips') },
       ],
     },
     {
       title: 'Account',
       items: [
-        { id: 'menu-payments', icon: CreditCard, color: '#3B82F6', bg: '#EFF6FF', label: 'Payment Methods', sub: 'Cards, UPI & Wallets', action: () => {} },
-        { id: 'menu-notifications', icon: Bell, color: '#8B5CF6', bg: '#F5F3FF', label: 'Notifications', sub: 'Booking alerts & updates', action: () => {} },
-        { id: 'menu-security', icon: Shield, color: '#10B981', bg: '#ECFDF5', label: 'Privacy & Security', sub: 'Manage your data', action: () => {} },
-        { id: 'menu-settings', icon: Settings, color: '#6B7280', bg: '#F9FAFB', label: 'App Settings', sub: 'Theme, language & more', action: () => {} },
+        { id: 'menu-payments', icon: CreditCard, color: '#3B82F6', bg: '#EFF6FF', label: 'Payment Methods', sub: 'Cards, UPI & Wallets', action: () => setActiveView('menu-payments') },
+        { id: 'menu-notifications', icon: Bell, color: '#8B5CF6', bg: '#F5F3FF', label: 'Notifications', sub: 'Booking alerts & updates', action: () => setActiveView('menu-notifications') },
+        { id: 'menu-security', icon: Shield, color: '#10B981', bg: '#ECFDF5', label: 'Privacy & Security', sub: 'Manage your data', action: () => setActiveView('menu-security') },
+        { id: 'menu-settings', icon: Settings, color: '#6B7280', bg: '#F9FAFB', label: 'App Settings', sub: 'Theme, language & more', action: () => setActiveView('menu-settings') },
       ],
     },
     {
       title: 'Support',
       items: [
-        { id: 'menu-help', icon: HelpCircle, color: '#EAB308', bg: '#FEFCE8', label: 'Help & Support', sub: '24/7 customer assistance', action: () => {} },
+        { id: 'menu-help', icon: HelpCircle, color: '#EAB308', bg: '#FEFCE8', label: 'Help & Support', sub: '24/7 customer assistance', action: () => setActiveView('menu-help') },
       ],
     },
   ];
@@ -183,6 +185,145 @@ export default function AccountPage() {
       </div>
 
       <BottomNav />
+
+      <AnimatePresence>
+        {activeView && (
+          <DetailView activeView={activeView} onClose={() => setActiveView(null)} />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function DetailView({ activeView, onClose }: { activeView: string, onClose: () => void }) {
+  let title = '';
+  let content = null;
+
+  const ToggleRow = ({ label, defaultChecked }: { label: string, defaultChecked?: boolean }) => {
+    const [checked, setChecked] = useState(defaultChecked || false);
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #F3F4F6' }}>
+        <span style={{ fontFamily: 'Inter', fontSize: 15, color: '#374151', fontWeight: 500 }}>{label}</span>
+        <div onClick={() => setChecked(!checked)} style={{ width: 44, height: 24, borderRadius: 12, background: checked ? '#10B981' : '#E5E7EB', position: 'relative', cursor: 'pointer', transition: 'background 0.2s' }}>
+          <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: checked ? 22 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+        </div>
+      </div>
+    );
+  };
+
+  switch (activeView) {
+    case 'menu-trips':
+      title = 'Saved Routes';
+      content = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 600, margin: '0 auto' }}>
+          {[
+            { from: 'Chennai', to: 'Bangalore', type: 'Bus', date: 'Frequent' },
+            { from: 'Mumbai', to: 'Goa', type: 'Flight', date: 'Saved on 12 Apr' },
+            { from: 'Delhi', to: 'Manali', type: 'Bus', date: 'Saved on 05 Mar' }
+          ].map((r, i) => (
+            <div key={i} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 16, color: '#111827' }}>{r.from} → {r.to}</p>
+                <p style={{ fontFamily: 'Inter', fontSize: 13, color: '#6B7280', marginTop: 4 }}>{r.type} · {r.date}</p>
+              </div>
+              <ChevronRight size={20} color="#9CA3AF" />
+            </div>
+          ))}
+        </div>
+      );
+      break;
+    case 'menu-payments':
+      title = 'Payment Methods';
+      content = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 600, margin: '0 auto' }}>
+          <div style={{ background: 'linear-gradient(135deg, #1E3A8A, #3B82F6)', borderRadius: 16, padding: 20, color: '#fff' }}>
+            <p style={{ fontFamily: 'Inter', fontSize: 14, opacity: 0.8 }}>HDFC Bank Credit Card</p>
+            <p style={{ fontFamily: 'Poppins', fontWeight: 600, fontSize: 20, marginTop: 12, letterSpacing: 2 }}>**** **** **** 4532</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 12 }}>Valid Thru: 09/27</p>
+              <div style={{ display: 'flex', gap: -8 }}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,0,0,0.6)' }} />
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,165,0,0.6)', marginLeft: -12 }} />
+              </div>
+            </div>
+          </div>
+          <button style={{ width: '100%', padding: 16, borderRadius: 16, border: '2px dashed #D1D5DB', background: 'transparent', color: '#6B7280', fontFamily: 'Poppins', fontWeight: 600, fontSize: 15, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+            + Add New Card
+          </button>
+        </div>
+      );
+      break;
+    case 'menu-notifications':
+      title = 'Notifications';
+      content = (
+        <div style={{ maxWidth: 600, margin: '0 auto', background: '#fff', borderRadius: 16, padding: '0 20px', border: '1px solid #E5E7EB' }}>
+          <ToggleRow label="Push Notifications" defaultChecked={true} />
+          <ToggleRow label="SMS Alerts" defaultChecked={true} />
+          <ToggleRow label="Email Newsletters" defaultChecked={false} />
+          <ToggleRow label="Price Drop Alerts" defaultChecked={true} />
+        </div>
+      );
+      break;
+    case 'menu-security':
+      title = 'Privacy & Security';
+      content = (
+        <div style={{ maxWidth: 600, margin: '0 auto', background: '#fff', borderRadius: 16, padding: '0 20px', border: '1px solid #E5E7EB' }}>
+          <ToggleRow label="Biometric Login (Face/Touch ID)" defaultChecked={true} />
+          <ToggleRow label="Two-Factor Authentication" defaultChecked={false} />
+          <ToggleRow label="Share Data with Partners" defaultChecked={false} />
+        </div>
+      );
+      break;
+    case 'menu-settings':
+      title = 'App Settings';
+      content = (
+        <div style={{ maxWidth: 600, margin: '0 auto', background: '#fff', borderRadius: 16, padding: '0 20px', border: '1px solid #E5E7EB' }}>
+          <ToggleRow label="Dark Mode" defaultChecked={false} />
+          <ToggleRow label="Data Saver Mode" defaultChecked={false} />
+          <div style={{ padding: '16px 0', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'Inter', fontSize: 15, color: '#374151', fontWeight: 500 }}>Currency</span>
+            <span style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280', fontWeight: 600 }}>INR (₹)</span>
+          </div>
+          <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'Inter', fontSize: 15, color: '#374151', fontWeight: 500 }}>Language</span>
+            <span style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280', fontWeight: 600 }}>English</span>
+          </div>
+        </div>
+      );
+      break;
+    case 'menu-help':
+      title = 'Help & Support';
+      content = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 600, margin: '0 auto' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: '1px solid #E5E7EB' }}>
+            <p style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 16, color: '#111827', marginBottom: 12 }}>Frequently Asked Questions</p>
+            {['How to cancel a booking?', 'Where is my refund?', 'Can I change my travel date?'].map((q, i) => (
+               <div key={i} style={{ padding: '12px 0', borderBottom: i < 2 ? '1px solid #F3F4F6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <span style={{ fontFamily: 'Inter', fontSize: 14, color: '#4B5563' }}>{q}</span>
+                 <ChevronRight size={16} color="#9CA3AF" />
+               </div>
+            ))}
+          </div>
+          <button style={{ width: '100%', padding: 16, borderRadius: 16, border: 'none', background: '#2563EB', color: '#fff', fontFamily: 'Poppins', fontWeight: 700, fontSize: 15, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+            Chat with an Agent
+          </button>
+        </div>
+      );
+      break;
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, x: '100%' }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      style={{ position: 'fixed', inset: 0, background: '#F8F9FB', zIndex: 60, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: '#fff', padding: '0 20px', height: 64, display: 'flex', alignItems: 'center', gap: 16, borderBottom: '1px solid #F3F4F6', flexShrink: 0 }}>
+        <button onClick={onClose} style={{ width: 40, height: 40, borderRadius: '50%', background: '#F3F4F6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronRight size={20} color="#111827" style={{ transform: 'rotate(180deg)' }} />
+        </button>
+        <p style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 18, color: '#111827' }}>{title}</p>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 24, paddingBottom: 100 }}>
+        {content}
+      </div>
+    </motion.div>
   );
 }

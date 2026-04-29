@@ -58,7 +58,7 @@ export default function LoginPage() {
             <Bus size={24} color="#fff" />
           </div>
           <div>
-            <p style={{ color: '#fff', fontFamily: 'Poppins', fontWeight: 700, fontSize: 20 }}>BusFlight</p>
+            <p style={{ color: '#fff', fontFamily: 'Poppins', fontWeight: 700, fontSize: 20 }}>Tripio</p>
             <p style={{ color: '#FCA5A5', fontFamily: 'Inter', fontSize: 12 }}>Travel Booking Platform</p>
           </div>
         </div>

@@ -76,9 +76,9 @@ export default function FlightReviewPage() {
         </motion.div>
 
         {/* 2-col info grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
           {/* Baggage */}
-          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} style={W}>
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} style={{ ...W, flex: '1 1 300px', marginBottom: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', borderBottom: '1px solid #F9FAFB' }}>
               <Luggage size={16} color="#DC2626" />
               <p style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 14, color: '#111827' }}>Baggage Allowance</p>
@@ -99,7 +99,7 @@ export default function FlightReviewPage() {
           </motion.div>
 
           {/* Amenities */}
-          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} style={W}>
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} style={{ ...W, flex: '1 1 300px', marginBottom: 0 }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #F9FAFB' }}>
               <p style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 14, color: '#111827' }}>Amenities & Info</p>
             </div>

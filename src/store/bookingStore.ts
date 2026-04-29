@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Booking } from '../types';
 
 // Pre-loaded mock bookings for admin panel demo
@@ -69,11 +70,18 @@ interface BookingStore {
   getTotalRevenue: () => number;
 }
 
-export const useBookingStore = create<BookingStore>((set, get) => ({
-  bookings: MOCK_BOOKINGS,
-  addBooking: (b) => set((s) => ({ bookings: [b, ...s.bookings] })),
-  getTotalRevenue: () => get().bookings.reduce((sum, b) => sum + b.finalAmount, 0),
-}));
+export const useBookingStore = create<BookingStore>()(
+  persist(
+    (set, get) => ({
+      bookings: MOCK_BOOKINGS,
+      addBooking: (b) => set((s) => ({ bookings: [b, ...s.bookings] })),
+      getTotalRevenue: () => get().bookings.reduce((sum, b) => sum + b.finalAmount, 0),
+    }),
+    {
+      name: 'booking-storage',
+    }
+  )
+);
 
 export function generateBookingId() {
   return 'BF-' + Math.random().toString(36).slice(2, 8).toUpperCase();

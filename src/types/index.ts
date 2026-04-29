@@ -71,6 +71,7 @@ export interface Flight {
   stops: number;
   meal: boolean;
   refundable: boolean;
+  isInternational?: boolean;
 }
 
 // ─── Boarding Points ───────────────────────────────────────────────────────────
@@ -92,6 +93,14 @@ export interface PassengerDetail {
   gender: 'male' | 'female' | 'other';
   email: string;
   phone: string;
+  title?: 'Mr' | 'Ms' | 'Mrs';
+  firstName?: string;
+  lastName?: string;
+  dob?: string;
+  passportNo?: string;
+  passportIssueDate?: string;
+  passportExpiryDate?: string;
+  nationality?: string;
 }
 
 export interface BusBooking {
@@ -126,6 +135,7 @@ export interface FlightBooking {
   travelDate: string;
   status: BookingStatus;
   pnr: string;
+  fareType?: 'Handbag Only Fare' | 'Regular Fare';
 }
 
 export type Booking = BusBooking | FlightBooking;
@@ -160,4 +170,5 @@ export interface FlightSearch {
   date: string;
   travellers: number;
   cabinClass: CabinClass;
+  fareType?: 'Handbag Only Fare' | 'Regular Fare';
 }

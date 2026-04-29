@@ -289,6 +289,81 @@ export const mockFlights: Flight[] = [
     meal: false,
     refundable: false,
   },
+  {
+    id: 'fl-101',
+    airline: 'Air Asia',
+    flightNumber: 'AK 12',
+    aircraft: 'Airbus A320',
+    from: 'Chennai',
+    fromCode: 'MAA',
+    to: 'Kuala Lumpur',
+    toCode: 'KUL',
+    departure: '23:45',
+    arrival: '06:20',
+    duration: '4h 5m',
+    price: 38302,
+    originalPrice: 40322,
+    cabinClass: 'Economy',
+    seatsLeft: 12,
+    tags: ['Non-stop'],
+    baggageIncluded: 0,
+    handBaggage: 7,
+    terminal: { departure: 'T4', arrival: 'T2' },
+    stops: 0,
+    meal: false,
+    refundable: false,
+    isInternational: true,
+  },
+  {
+    id: 'fl-102',
+    airline: 'IndiGo',
+    flightNumber: '6E 796',
+    aircraft: 'Airbus A321',
+    from: 'Chennai',
+    fromCode: 'MAA',
+    to: 'Kuala Lumpur',
+    toCode: 'KUL',
+    departure: '22:00',
+    arrival: '21:00',
+    duration: '20h 30m',
+    price: 40273,
+    originalPrice: 42522,
+    cabinClass: 'Economy',
+    seatsLeft: 8,
+    tags: ['1 stop'],
+    baggageIncluded: 0,
+    handBaggage: 7,
+    terminal: { departure: 'T1', arrival: 'T1' },
+    stops: 1,
+    meal: false,
+    refundable: false,
+    isInternational: true,
+  },
+  {
+    id: 'fl-103',
+    airline: 'Fly Scoot',
+    flightNumber: 'TR 779',
+    aircraft: 'Boeing 787',
+    from: 'Chennai',
+    fromCode: 'MAA',
+    to: 'Kuala Lumpur',
+    toCode: 'KUL',
+    departure: '23:50',
+    arrival: '10:35',
+    duration: '8h 15m',
+    price: 46672,
+    originalPrice: 48472,
+    cabinClass: 'Economy',
+    seatsLeft: 20,
+    tags: ['1 stop'],
+    baggageIncluded: 0,
+    handBaggage: 7,
+    terminal: { departure: 'T4', arrival: 'T2' },
+    stops: 1,
+    meal: false,
+    refundable: false,
+    isInternational: true,
+  },
 ];
 
 export const airlineLogos: Record<string, string> = {
@@ -297,6 +372,8 @@ export const airlineLogos: Record<string, string> = {
   SpiceJet: '✈',
   Vistara: '✈',
   'Akasa Air': '✈',
+  'Air Asia': '✈',
+  'Fly Scoot': '✈',
 };
 
 export const airlineColors: Record<string, string> = {
@@ -305,4 +382,47 @@ export const airlineColors: Record<string, string> = {
   SpiceJet: '#FF0000',
   Vistara: '#4A1578',
   'Akasa Air': '#F97316',
+  'Air Asia': '#FF0000',
+  'Fly Scoot': '#FFDE00',
 };
+
+export function getRealisticFlightDetails(f: Flight, fromCode: string, toCode: string): Flight {
+  const internationalCodes = ['KUL', 'DXB', 'SIN', 'BKK', 'LHR', 'JFK', 'CDG'];
+  const isInternational = internationalCodes.includes(toCode) || internationalCodes.includes(fromCode);
+  
+  let duration = f.duration;
+  let price = f.price;
+  let originalPrice = f.originalPrice;
+
+  if (toCode === 'JFK' || fromCode === 'JFK') {
+    duration = '22h 30m';
+    price = Math.floor(80000 + Math.random() * 20000);
+    originalPrice = price + 15000;
+  } else if (toCode === 'LHR' || fromCode === 'LHR' || toCode === 'CDG' || fromCode === 'CDG') {
+    duration = '11h 15m';
+    price = Math.floor(50000 + Math.random() * 15000);
+    originalPrice = price + 10000;
+  } else if (toCode === 'DXB' || fromCode === 'DXB') {
+    duration = '4h 30m';
+    price = Math.floor(15000 + Math.random() * 5000);
+    originalPrice = price + 3000;
+  } else if (internationalCodes.includes(toCode) || internationalCodes.includes(fromCode)) {
+    duration = '4h 15m';
+    price = Math.floor(12000 + Math.random() * 8000);
+    originalPrice = price + 4000;
+  } else {
+    // Domestic pseudo-randomness based on ID so it's consistent during a session
+    const rand = (parseInt(f.id.replace(/\D/g, '')) || 1) % 5;
+    duration = (1 + (rand % 2)) + 'h ' + (10 * rand) + 'm';
+    price = 3000 + rand * 800;
+    originalPrice = price + 1500;
+  }
+
+  return {
+    ...f,
+    duration,
+    price,
+    originalPrice,
+    isInternational
+  };
+}
