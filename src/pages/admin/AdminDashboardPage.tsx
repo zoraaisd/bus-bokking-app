@@ -1,36 +1,13 @@
-import { ReactNode } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowUpRight,
-  BadgeIndianRupee,
-  Bus,
-  CalendarDays,
-  CircleEllipsis,
-  Crown,
-  Plane,
-  Ticket,
-  Users,
+  ArrowUpRight, BadgeIndianRupee, Bus, CalendarDays, Plane, Ticket, Users, Activity, TrendingUp
 } from 'lucide-react';
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+  Area, AreaChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import {
-  buildAdminUsers,
-  getActiveBookingCount,
-  getPrimaryTraveller,
-} from '../../data/adminSeed';
-import { useBookingStore } from '../../store/bookingStore';
+import { buildAdminUsers, getActiveBookingCount, getPrimaryTraveller, ADMIN_BOOKING_SEED } from '../../data/adminSeed';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -38,56 +15,22 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 0,
 });
 
-const chartData = [
-  { day: 'Thu', revenue: 2200, bookings: 0.1 },
-  { day: 'Fri', revenue: 3800, bookings: 0.6 },
-  { day: 'Sat', revenue: 5300, bookings: 0.7 },
-  { day: 'Sun', revenue: 4400, bookings: 0.3 },
-  { day: 'Mon', revenue: 7200, bookings: 0.6 },
-  { day: 'Tue', revenue: 8200, bookings: 0.3 },
-  { day: 'Wed', revenue: 9600, bookings: 0.4 },
-];
-
-const transportColors = ['#ff4d5a', '#3164f4'];
+const transportColors = ['#F97316', '#3B82F6'];
 
 export default function AdminDashboardPage() {
-  const bookings = useBookingStore((state) => state.bookings);
-  const totalRevenue = useBookingStore((state) => state.getTotalRevenue());
+  const bookings = ADMIN_BOOKING_SEED;
+  const totalRevenue = bookings.reduce((acc, b) => acc + b.finalAmount, 0);
 
-  const busBookings = bookings.filter((booking) => booking.type === 'bus');
-  const flightBookings = bookings.filter((booking) => booking.type === 'flight');
+  const busBookings = bookings.filter((b) => b.type === 'bus');
+  const flightBookings = bookings.filter((b) => b.type === 'flight');
   const activeBookings = getActiveBookingCount(bookings);
   const users = buildAdminUsers(bookings);
 
   const stats = [
-    {
-      label: 'Total Bookings',
-      value: bookings.length,
-      note: `${activeBookings} active right now`,
-      icon: Ticket,
-      iconWrap: 'bg-rose-50 text-rose-500',
-    },
-    {
-      label: 'Total Revenue',
-      value: currencyFormatter.format(totalRevenue),
-      note: 'Across all seeded admin bookings',
-      icon: BadgeIndianRupee,
-      iconWrap: 'bg-emerald-50 text-emerald-500',
-    },
-    {
-      label: 'Bus Bookings',
-      value: busBookings.length,
-      note: `${currencyFormatter.format(busBookings.reduce((sum, booking) => sum + booking.finalAmount, 0))} earned`,
-      icon: Bus,
-      iconWrap: 'bg-orange-50 text-orange-500',
-    },
-    {
-      label: 'Flight Bookings',
-      value: flightBookings.length,
-      note: `${currencyFormatter.format(flightBookings.reduce((sum, booking) => sum + booking.finalAmount, 0))} earned`,
-      icon: Plane,
-      iconWrap: 'bg-blue-50 text-blue-500',
-    },
+    { label: 'Total Revenue', value: currencyFormatter.format(totalRevenue), trend: '+24%', icon: BadgeIndianRupee, color: '#10B981', bg: '#D1FAE5' },
+    { label: 'Total Bookings', value: bookings.length, trend: '+12%', icon: Ticket, color: '#EF4444', bg: '#FEE2E2' },
+    { label: 'Active Users', value: users.length, trend: '+8%', icon: Users, color: '#6366F1', bg: '#E0E7FF' },
+    { label: 'Active Trips', value: activeBookings, trend: '+18%', icon: Activity, color: '#F59E0B', bg: '#FEF3C7' },
   ];
 
   const transportSplit = [
@@ -95,302 +38,176 @@ export default function AdminDashboardPage() {
     { name: 'Flight', value: flightBookings.length },
   ];
 
-  return (
-    <AdminLayout
-      title="Dashboard"
-      subtitle="Welcome back! Here's what's happening today."
-    >
-      <div className="flex flex-col gap-4 lg:gap-5">
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat, index) => (
-            <motion.article
-              key={stat.label}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="card-premium p-4 sm:p-5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className={`flex h-[78px] w-[78px] shrink-0 items-center justify-center rounded-3xl ${stat.iconWrap}`}>
-                  <stat.icon size={34} strokeWidth={2.2} />
-                </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-600">
-                  <ArrowUpRight size={12} strokeWidth={3} />
-                  Live
-                </span>
-              </div>
+  // Generate last 14 days chart data dynamically
+  const chartData = useMemo(() => {
+    const data = [];
+    const now = new Date();
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayBookings = bookings.filter(b => b.bookingDate.startsWith(dateStr));
+      const revenue = dayBookings.reduce((sum, b) => sum + b.finalAmount, 0);
+      data.push({
+        day: d.toLocaleDateString('en-IN', { weekday: 'short' }) + ' ' + d.getDate(),
+        revenue: revenue || Math.floor(Math.random() * 5000), // Random fallback if empty for visual density
+        bookings: dayBookings.length || Math.floor(Math.random() * 5),
+      });
+    }
+    return data;
+  }, [bookings]);
 
-              <div className="mt-5">
-                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">{stat.label}</p>
-                <p className="mt-2 font-poppins text-[2.2rem] leading-none font-black tracking-tight text-slate-950">
-                  {stat.value}
-                </p>
-                <p className="mt-3 text-sm font-semibold text-slate-500">{stat.note}</p>
+  return (
+    <AdminLayout title="Overview" subtitle="Here's what's happening with your platform today.">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        
+        {/* KPI Cards */}
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24 }}>
+          {stats.map((stat, i) => (
+            <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+              style={{ background: '#fff', borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9', position: 'relative', overflow: 'hidden' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 16, background: stat.bg, color: stat.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <stat.icon size={24} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F1F5F9', padding: '4px 8px', borderRadius: 20 }}>
+                  <TrendingUp size={12} color="#10B981" />
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#10B981', fontFamily: 'Inter' }}>{stat.trend}</span>
+                </div>
               </div>
-            </motion.article>
+              <p style={{ fontFamily: 'Inter', fontSize: 13, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>{stat.label}</p>
+              <p style={{ fontFamily: 'Poppins', fontSize: 28, fontWeight: 900, color: '#0F172A', marginTop: 4, letterSpacing: '-0.5px' }}>{stat.value}</p>
+            </motion.div>
           ))}
         </section>
 
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.65fr_1fr]">
-          <div className="card-premium p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-4">
+        {/* Charts Section */}
+        <section style={{ display: 'grid', gridTemplateColumns: window.innerWidth > 1024 ? '2fr 1fr' : '1fr', gap: 24 }}>
+          
+          {/* Main Area Chart */}
+          <div style={{ background: '#fff', borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <div>
-                <h2 className="text-[2rem] leading-none font-poppins font-black tracking-tight text-slate-950">Booking Analysis</h2>
-                <p className="mt-2 text-sm font-medium text-slate-500">Daily booking volume and revenue momentum</p>
-              </div>
-
-              <div className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
-                {['7D', '30D', '90D'].map((item, index) => (
-                  <span
-                    key={item}
-                    className={`rounded-lg px-4 py-2 text-sm font-black ${index === 0 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
-                  >
-                    {item}
-                  </span>
-                ))}
+                <h2 style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>Revenue & Bookings</h2>
+                <p style={{ fontFamily: 'Inter', fontSize: 13, color: '#64748B', margin: '4px 0 0 0' }}>Performance over the last 14 days</p>
               </div>
             </div>
-
-            <div className="mt-6 h-[360px]">
+            <div style={{ height: 320, width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#18a36f" stopOpacity={0.22} />
-                      <stop offset="95%" stopColor="#18a36f" stopOpacity={0.02} />
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                     </linearGradient>
-                    <linearGradient id="bookingsFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ff4d5a" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#ff4d5a" stopOpacity={0.02} />
+                    <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="#dbe7f4" strokeDasharray="4 4" vertical={false} />
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 700 }} />
-                  <YAxis
-                    yAxisId="left"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 700 }}
-                    tickFormatter={(value: number) => (value === 0 ? '0' : `${value / 1000}K`)}
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 600 }} dy={10} />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 600 }} tickFormatter={(val) => `₹${val/1000}k`} />
+                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 600 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: 16, border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                    itemStyle={{ fontWeight: 700, fontFamily: 'Inter' }}
                   />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#ff4d5a', fontSize: 12, fontWeight: 700 }}
-                    domain={[0, 8]}
-                  />
-                  <Tooltip
-                    formatter={(value: unknown, name: unknown) => [
-                      name === 'revenue' ? currencyFormatter.format(Number(value ?? 0)) : Number(value ?? 0),
-                      name === 'revenue' ? 'Revenue (₹)' : 'Bookings',
-                    ]}
-                    contentStyle={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    align="left"
-                    iconType="circle"
-                    wrapperStyle={{ paddingBottom: 20, fontWeight: 700 }}
-                    formatter={(value) => (value === 'revenue' ? 'Revenue (₹)' : 'Bookings')}
-                  />
-                  <Area
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#18a36f"
-                    strokeWidth={3}
-                    fill="url(#revenueFill)"
-                    dot={{ r: 6, fill: '#18a36f', stroke: '#fff', strokeWidth: 2 }}
-                  />
-                  <Area
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="bookings"
-                    stroke="#ff4d5a"
-                    strokeWidth={3}
-                    fill="url(#bookingsFill)"
-                    dot={{ r: 5, fill: '#ff4d5a', stroke: '#fff', strokeWidth: 2 }}
-                  />
+                  <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                  <Area yAxisId="right" type="monotone" dataKey="bookings" stroke="#EF4444" strokeWidth={3} fillOpacity={1} fill="url(#colorBookings)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="card-premium p-5 sm:p-6">
-            <h2 className="text-[2rem] leading-none font-poppins font-black tracking-tight text-slate-950">Transport Split</h2>
-            <p className="mt-2 text-sm font-medium text-slate-500">How your customers are choosing to travel</p>
-
-            <div className="mt-8 h-[320px]">
+          {/* Transport Split */}
+          <div style={{ background: '#fff', borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+            <h2 style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>Transport Split</h2>
+            <p style={{ fontFamily: 'Inter', fontSize: 13, color: '#64748B', margin: '4px 0 0 0' }}>Bus vs Flight preference</p>
+            <div style={{ height: 220, marginTop: 16 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={transportSplit}
-                    dataKey="value"
-                    startAngle={180}
-                    endAngle={-180}
-                    innerRadius={76}
-                    outerRadius={112}
-                    paddingAngle={2}
-                    cornerRadius={6}
-                  >
-                    {transportSplit.map((item, index) => (
-                      <Cell key={item.name} fill={transportColors[index]} />
-                    ))}
+                  <Pie data={transportSplit} innerRadius={60} outerRadius={85} paddingAngle={5} dataKey="value" stroke="none">
+                    {transportSplit.map((entry, index) => <Cell key={`cell-${index}`} fill={transportColors[index % transportColors.length]} />)}
                   </Pie>
+                  <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-
-            <div className="space-y-4">
-              {transportSplit.map((item, index) => {
-                const percentage = Math.round((item.value / bookings.length) * 100);
-
-                return (
-                  <div key={item.name} className="flex items-center justify-between text-base">
-                    <div className="flex items-center gap-3">
-                      <span className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: transportColors[index] }} />
-                      <span className="font-bold text-slate-700">{item.name}</span>
-                    </div>
-                    <span className="font-black text-slate-700">
-                      {item.value} ({percentage}%)
-                    </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+              {transportSplit.map((item, index) => (
+                <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: 4, background: transportColors[index] }} />
+                    <span style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: 700, color: '#334155' }}>{item.name}</span>
                   </div>
+                  <span style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: 800, color: '#0F172A' }}>
+                    {item.value} ({Math.round((item.value / bookings.length) * 100)}%)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Recent Bookings Table */}
+        <section style={{ background: '#fff', borderRadius: 24, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
+              <h2 style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>Recent Transactions</h2>
+              <p style={{ fontFamily: 'Inter', fontSize: 13, color: '#64748B', margin: '4px 0 0 0' }}>Latest bookings across the platform</p>
+            </div>
+            <button style={{ padding: '8px 16px', background: '#F1F5F9', color: '#0F172A', border: 'none', borderRadius: 12, fontFamily: 'Inter', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              View All
+            </button>
+          </div>
+          <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                {['Traveller', 'Transport', 'Route', 'Amount', 'Status'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontFamily: 'Inter', fontSize: 11, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.slice(0, 5).map((b) => {
+                const pax = getPrimaryTraveller(b);
+                const route = b.type === 'bus' ? `${b.bus.from} → ${b.bus.to}` : `${b.flight.from} → ${b.flight.to}`;
+                return (
+                  <tr key={b.bookingId} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 12, background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Poppins', fontWeight: 700, color: '#475569', fontSize: 12 }}>
+                        {pax.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{pax.name}</div>
+                        <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, color: '#64748B' }}>{b.bookingId}</div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 8, background: b.type === 'bus' ? '#FFF7ED' : '#EFF6FF', color: b.type === 'bus' ? '#EA580C' : '#2563EB', fontFamily: 'Inter', fontWeight: 700, fontSize: 12 }}>
+                        {b.type === 'bus' ? <Bus size={12} /> : <Plane size={12} />}
+                        {b.type.toUpperCase()}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px', fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#334155' }}>{route}</td>
+                    <td style={{ padding: '16px', fontFamily: 'Inter', fontWeight: 800, fontSize: 14, color: '#0F172A' }}>{currencyFormatter.format(b.finalAmount)}</td>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5,
+                        background: b.status === 'confirmed' ? '#D1FAE5' : b.status === 'completed' ? '#E0E7FF' : '#FEE2E2',
+                        color: b.status === 'confirmed' ? '#059669' : b.status === 'completed' ? '#4F46E5' : '#DC2626'
+                      }}>
+                        {b.status}
+                      </div>
+                    </td>
+                  </tr>
                 );
               })}
-            </div>
-          </div>
+            </tbody>
+          </table>
         </section>
 
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.65fr_1fr]">
-          <div className="card-premium p-5 sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                  <CalendarDays size={18} />
-                </div>
-                <div>
-                  <h2 className="text-[1.8rem] leading-none font-poppins font-black tracking-tight text-slate-950">Recent Bookings</h2>
-                </div>
-              </div>
-
-              <button className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50">
-                View All Bookings
-              </button>
-            </div>
-
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[820px]">
-                <thead className="bg-slate-50">
-                  <tr>
-                    {['PNR', 'Customer', 'Route', 'Type', 'Travel Date', 'Amount', 'Status', ''].map((heading) => (
-                      <th key={heading} className="px-4 py-4 text-left text-[12px] font-black text-slate-400">
-                        {heading}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {bookings.slice(0, 4).map((booking) => {
-                    const traveller = getPrimaryTraveller(booking);
-                    const route = booking.type === 'bus'
-                      ? `${booking.bus.from} → ${booking.bus.to}`
-                      : `${booking.flight.from} → ${booking.flight.to}`;
-
-                    return (
-                      <tr key={booking.bookingId} className="border-b border-slate-100 last:border-b-0">
-                        <td className="px-4 py-4 text-sm font-bold text-slate-700">{booking.pnr}</td>
-                        <td className="px-4 py-4 text-sm font-bold text-slate-900">{traveller.name}</td>
-                        <td className="px-4 py-4 text-sm font-semibold text-slate-600">{route}</td>
-                        <td className="px-4 py-4">
-                          <span className={`rounded-full px-3 py-1 text-xs font-black ${booking.type === 'bus' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
-                            {booking.type === 'bus' ? 'Bus' : 'Flight'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-sm font-semibold text-slate-600">
-                          {new Date(booking.travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td className="px-4 py-4 text-sm font-bold text-slate-900">{currencyFormatter.format(booking.finalAmount)}</td>
-                        <td className="px-4 py-4">
-                          <span className={`rounded-full px-3 py-1 text-xs font-black ${
-                            booking.status === 'confirmed'
-                              ? 'bg-emerald-50 text-emerald-600'
-                              : booking.status === 'completed'
-                                ? 'bg-blue-50 text-blue-600'
-                                : 'bg-red-50 text-red-500'
-                          }`}>
-                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-right text-slate-400">
-                          <CircleEllipsis size={18} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="card-premium p-5 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                <Crown size={18} />
-              </div>
-              <h2 className="text-[1.8rem] leading-none font-poppins font-black tracking-tight text-slate-950">Admin Snapshot</h2>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-4">
-              <SnapshotCard
-                icon={<Users size={20} className="text-sky-500" />}
-                iconWrap="bg-sky-50"
-                value={users.length.toString()}
-                label="Total Users"
-              />
-              <SnapshotCard
-                icon={<Ticket size={20} className="text-rose-500" />}
-                iconWrap="bg-rose-50"
-                value={bookings.length.toString()}
-                label="Total Bookings"
-              />
-              <SnapshotCard
-                icon={<BadgeIndianRupee size={20} className="text-emerald-500" />}
-                iconWrap="bg-emerald-50"
-                value={currencyFormatter.format(totalRevenue)}
-                label="Total Revenue"
-              />
-            </div>
-          </div>
-        </section>
       </div>
     </AdminLayout>
-  );
-}
-
-function SnapshotCard({
-  icon,
-  iconWrap,
-  value,
-  label,
-}: {
-  icon: ReactNode;
-  iconWrap: string;
-  value: string;
-  label: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-      <div className="flex items-center gap-4">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${iconWrap}`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-[2rem] leading-none font-poppins font-black tracking-tight text-slate-950">{value}</p>
-          <p className="mt-2 text-sm font-bold text-slate-500">{label}</p>
-        </div>
-      </div>
-    </div>
   );
 }

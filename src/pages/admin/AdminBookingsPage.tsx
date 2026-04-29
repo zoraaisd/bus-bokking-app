@@ -1,363 +1,223 @@
-import { useMemo, useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {
-  ArrowUpDown,
-  Bus,
-  CalendarDays,
-  Filter,
-  Plane,
-  Search,
-  Users,
-} from 'lucide-react';
+import { Bus, Plane, Search, Filter, CalendarDays, MoreHorizontal, CheckCircle2, XCircle } from 'lucide-react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { StatusBadge } from '../../components/common/Badge';
-import {
-  getOperatorLabel,
-  getPrimaryTraveller,
-  getRouteLabel,
-  getTravellerCount,
-} from '../../data/adminSeed';
-import { useBookingStore } from '../../store/bookingStore';
+import { getPrimaryTraveller, getRouteLabel, getOperatorLabel, ADMIN_BOOKING_SEED } from '../../data/adminSeed';
 import { Booking, BookingStatus } from '../../types';
 
-const currencyFormatter = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 0,
-});
+const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 
-type TransportFilter = 'all' | 'bus' | 'flight';
-type SortField = 'bookingDate' | 'travelDate' | 'amount';
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) setMatches(media.matches);
+    const listener = () => setMatches(media.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [matches, query]);
+  return matches;
+}
 
 export default function AdminBookingsPage() {
-  const bookings = useBookingStore((state) => state.bookings);
+  const bookings = ADMIN_BOOKING_SEED;
+  const isMobile = useMediaQuery('(max-width: 1024px)');
+
   const [search, setSearch] = useState('');
-  const [transportFilter, setTransportFilter] = useState<TransportFilter>('all');
+  const [transportFilter, setTransportFilter] = useState<'all' | 'bus' | 'flight'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | BookingStatus>('all');
-  const [sortField, setSortField] = useState<SortField>('bookingDate');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const filteredBookings = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return [...bookings]
-      .filter((booking) => {
-        const traveller = getPrimaryTraveller(booking);
-        const route = getRouteLabel(booking).toLowerCase();
-        const operator = getOperatorLabel(booking).toLowerCase();
-
-        if (transportFilter !== 'all' && booking.type !== transportFilter) {
-          return false;
-        }
-
-        if (statusFilter !== 'all' && booking.status !== statusFilter) {
-          return false;
-        }
-
-        if (!query) {
-          return true;
-        }
-
-        return [
-          traveller.name,
-          traveller.email,
-          booking.bookingId,
-          booking.pnr,
-          route,
-          operator,
-        ].some((value) => value.toLowerCase().includes(query));
-      })
-      .sort((left, right) => {
-        const direction = sortDirection === 'asc' ? 1 : -1;
-
-        if (sortField === 'amount') {
-          return (left.finalAmount - right.finalAmount) * direction;
-        }
-
-        return (
-          (new Date(left[sortField]).getTime() - new Date(right[sortField]).getTime()) * direction
-        );
-      });
-  }, [bookings, search, sortDirection, sortField, statusFilter, transportFilter]);
-
-  const activeFilters = [
-    transportFilter !== 'all' ? transportFilter : null,
-    statusFilter !== 'all' ? statusFilter : null,
-    search ? `"${search}"` : null,
-  ].filter(Boolean);
+    const q = search.trim().toLowerCase();
+    return bookings.filter(b => {
+      const pax = getPrimaryTraveller(b);
+      const route = getRouteLabel(b).toLowerCase();
+      const operator = getOperatorLabel(b).toLowerCase();
+      
+      if (transportFilter !== 'all' && b.type !== transportFilter) return false;
+      if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+      
+      if (!q) return true;
+      return [pax.name, pax.email, b.bookingId, b.pnr, route, operator].some(v => v.toLowerCase().includes(q));
+    });
+  }, [bookings, search, transportFilter, statusFilter]);
 
   return (
-    <AdminLayout
-      title="All Bookings"
-      subtitle={`${bookings.length} booking records in the admin seed`}
-    >
-      <div className="flex flex-col gap-5">
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-          <SummaryCard label="Visible bookings" value={filteredBookings.length.toString()} />
-          <SummaryCard
-            label="Visible revenue"
-            value={currencyFormatter.format(filteredBookings.reduce((sum, booking) => sum + booking.finalAmount, 0))}
-          />
-          <SummaryCard
-            label="Bus share"
-            value={filteredBookings.filter((booking) => booking.type === 'bus').length.toString()}
-          />
-          <SummaryCard
-            label="Flight share"
-            value={filteredBookings.filter((booking) => booking.type === 'flight').length.toString()}
-          />
-        </section>
+    <AdminLayout title="All Bookings" subtitle={`Managing ${bookings.length} total bookings on the platform.`}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        
+        {/* Filters Area */}
+        <div style={{ background: '#fff', padding: 24, borderRadius: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between' }}>
+          
+          <div style={{ position: 'relative', flex: 1, maxWidth: isMobile ? '100%' : 400 }}>
+            <Search size={18} color="#94A3B8" style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)' }} />
+            <input 
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search PNR, Traveller, Route..." 
+              style={{ width: '100%', padding: '12px 16px 12px 42px', border: '1px solid #E2E8F0', borderRadius: 12, outline: 'none', fontFamily: 'Inter', fontSize: 14, color: '#0F172A', boxSizing: 'border-box' }}
+            />
+          </div>
 
-        <section className="card-premium p-4 sm:p-5">
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-              <label className="relative block flex-1">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search by traveller, route, PNR or booking ID"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-red-300 focus:bg-white"
-                />
-              </label>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <FilterGroup
-                  label="Transport"
-                  value={transportFilter}
-                  options={['all', 'bus', 'flight']}
-                  onSelect={(value) => setTransportFilter(value as TransportFilter)}
-                />
-                <FilterGroup
-                  label="Status"
-                  value={statusFilter}
-                  options={['all', 'confirmed', 'completed', 'cancelled']}
-                  onSelect={(value) => setStatusFilter(value as 'all' | BookingStatus)}
-                />
-              </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', background: '#F1F5F9', padding: 4, borderRadius: 12 }}>
+              {['all', 'bus', 'flight'].map(f => (
+                <button key={f} onClick={() => setTransportFilter(f as any)} style={{ padding: '8px 16px', background: transportFilter === f ? '#fff' : 'transparent', color: transportFilter === f ? '#0F172A' : '#64748B', border: 'none', borderRadius: 8, fontFamily: 'Inter', fontWeight: 700, fontSize: 13, textTransform: 'capitalize', cursor: 'pointer', boxShadow: transportFilter === f ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s' }}>
+                  {f}
+                </button>
+              ))}
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-2">
-                {activeFilters.length > 0 ? (
-                  activeFilters.map((filter) => (
-                    <span key={filter} className="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
-                      {filter}
-                    </span>
-                  ))
-                ) : (
-                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
-                    All bookings visible
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <SortButton
-                  active={sortField === 'bookingDate'}
-                  onClick={() => toggleSort('bookingDate', sortField, sortDirection, setSortField, setSortDirection)}
-                >
-                  Booked On
-                </SortButton>
-                <SortButton
-                  active={sortField === 'travelDate'}
-                  onClick={() => toggleSort('travelDate', sortField, sortDirection, setSortField, setSortDirection)}
-                >
-                  Travel Date
-                </SortButton>
-                <SortButton
-                  active={sortField === 'amount'}
-                  onClick={() => toggleSort('amount', sortField, sortDirection, setSortField, setSortDirection)}
-                >
-                  Amount
-                </SortButton>
-              </div>
+            <div style={{ display: 'flex', background: '#F1F5F9', padding: 4, borderRadius: 12 }}>
+              {['all', 'confirmed', 'completed', 'cancelled'].map(f => (
+                <button key={f} onClick={() => setStatusFilter(f as any)} style={{ padding: '8px 16px', background: statusFilter === f ? '#fff' : 'transparent', color: statusFilter === f ? '#0F172A' : '#64748B', border: 'none', borderRadius: 8, fontFamily: 'Inter', fontWeight: 700, fontSize: 13, textTransform: 'capitalize', cursor: 'pointer', boxShadow: statusFilter === f ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s' }}>
+                  {f}
+                </button>
+              ))}
             </div>
           </div>
-        </section>
+        </div>
 
-        <section className="card-premium overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1040px]">
-              <thead className="bg-slate-50">
+        {/* Results Area */}
+        {filteredBookings.length === 0 ? (
+          <div style={{ padding: 60, textAlign: 'center', background: '#fff', borderRadius: 24, border: '1px dashed #CBD5E1' }}>
+            <Filter size={48} color="#94A3B8" style={{ margin: '0 auto 16px' }} />
+            <h3 style={{ fontFamily: 'Poppins', fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>No bookings found</h3>
+            <p style={{ fontFamily: 'Inter', fontSize: 14, color: '#64748B', margin: '8px 0 0 0' }}>Try adjusting your filters or search terms.</p>
+          </div>
+        ) : isMobile ? (
+          // Mobile Cards
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {filteredBookings.map((b, i) => <BookingCard key={b.bookingId} booking={b} index={i} />)}
+          </div>
+        ) : (
+          // Desktop Table
+          <div style={{ background: '#fff', borderRadius: 24, padding: 0, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                 <tr>
-                  {['Booking', 'Traveller', 'Route', 'Dates', 'Fare', 'Status', 'PNR'].map((heading) => (
-                    <th key={heading} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-                      {heading}
-                    </th>
+                  {['Booking Info', 'Traveller', 'Journey', 'Amount', 'Status', ''].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '16px 24px', fontFamily: 'Inter', fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredBookings.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center">
-                      <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                          <Search size={30} />
-                        </div>
-                        <p className="font-poppins text-xl font-black text-slate-950">No bookings matched these filters</p>
-                        <p className="text-sm font-medium text-slate-500">Try another route, traveller name, or reset the status filter.</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredBookings.map((booking, index) => (
-                    <BookingRow key={booking.bookingId} booking={booking} index={index} />
-                  ))
-                )}
+              <tbody>
+                {filteredBookings.map((b, i) => (
+                  <BookingTableRow key={b.bookingId} booking={b} index={i} />
+                ))}
               </tbody>
             </table>
           </div>
-        </section>
+        )}
+
       </div>
     </AdminLayout>
   );
 }
 
-function BookingRow({ booking, index }: { booking: Booking; index: number }) {
-  const traveller = getPrimaryTraveller(booking);
-  const travellerCount = getTravellerCount(booking);
-  const route = getRouteLabel(booking);
-  const operator = getOperatorLabel(booking);
+const getStatusColor = (status: BookingStatus) => {
+  if (status === 'confirmed') return { bg: '#D1FAE5', text: '#059669', icon: CheckCircle2 };
+  if (status === 'completed') return { bg: '#E0E7FF', text: '#4F46E5', icon: CheckCircle2 };
+  return { bg: '#FEE2E2', text: '#DC2626', icon: XCircle };
+};
 
+function BookingTableRow({ booking, index }: { booking: Booking; index: number }) {
+  const pax = getPrimaryTraveller(booking);
+  const route = getRouteLabel(booking);
+  const st = getStatusColor(booking.status);
+  
   return (
-    <motion.tr
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03 }}
-      className="align-top transition hover:bg-slate-50/70"
-    >
-      <td className="px-5 py-4">
-        <div className="flex items-start gap-3">
-          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${booking.type === 'bus' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
+    <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 > 1 ? 0 : index * 0.05 }} style={{ borderBottom: '1px solid #F1F5F9' }}>
+      <td style={{ padding: '20px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: booking.type === 'bus' ? '#FFF7ED' : '#EFF6FF', color: booking.type === 'bus' ? '#EA580C' : '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {booking.type === 'bus' ? <Bus size={18} /> : <Plane size={18} />}
           </div>
           <div>
-            <p className="font-poppins text-sm font-black text-slate-950">{booking.bookingId}</p>
-            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{booking.type}</p>
+            <div style={{ fontFamily: 'Poppins', fontWeight: 800, fontSize: 14, color: '#0F172A' }}>{booking.bookingId}</div>
+            <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 12, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+              <span style={{ padding: '2px 6px', background: '#F1F5F9', borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{booking.pnr}</span>
+            </div>
           </div>
         </div>
       </td>
-      <td className="px-5 py-4">
-        <p className="font-poppins text-sm font-black text-slate-950">{traveller.name}</p>
-        <p className="mt-1 text-sm font-medium text-slate-500">{traveller.email}</p>
-        <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
-          <Users size={12} />
-          {travellerCount} traveller{travellerCount > 1 ? 's' : ''}
+      <td style={{ padding: '20px 24px' }}>
+        <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{pax.name}</div>
+        <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, color: '#64748B', marginTop: 2 }}>{pax.email}</div>
+      </td>
+      <td style={{ padding: '20px 24px' }}>
+        <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{route}</div>
+        <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 12, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+          <CalendarDays size={12} />
+          {new Date(booking.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
         </div>
       </td>
-      <td className="px-5 py-4">
-        <p className="font-poppins text-sm font-black text-slate-950">{route}</p>
-        <p className="mt-1 text-sm font-medium text-slate-500">{operator}</p>
+      <td style={{ padding: '20px 24px' }}>
+        <div style={{ fontFamily: 'Poppins', fontWeight: 800, fontSize: 15, color: '#0F172A' }}>{currencyFormatter.format(booking.finalAmount)}</div>
+        {booking.discount > 0 && <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 10, color: '#10B981', marginTop: 2 }}>SAVED {currencyFormatter.format(booking.discount)}</div>}
       </td>
-      <td className="px-5 py-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <CalendarDays size={14} className="text-slate-400" />
-            Travel {new Date(booking.travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-            Booked {new Date(booking.bookingDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-          </p>
+      <td style={{ padding: '20px 24px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: st.bg, color: st.text, fontFamily: 'Inter', fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <st.icon size={14} />
+          {booking.status}
         </div>
       </td>
-      <td className="px-5 py-4">
-        <p className="font-poppins text-lg font-black text-slate-950">{currencyFormatter.format(booking.finalAmount)}</p>
-        {booking.discount > 0 && (
-          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-600">
-            Saved {currencyFormatter.format(booking.discount)}
-          </p>
-        )}
-      </td>
-      <td className="px-5 py-4">
-        <StatusBadge status={booking.status} />
-      </td>
-      <td className="px-5 py-4">
-        <span className="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs font-bold tracking-[0.12em] text-slate-700">
-          {booking.pnr}
-        </span>
+      <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+        <button style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 8 }}>
+          <MoreHorizontal size={20} />
+        </button>
       </td>
     </motion.tr>
   );
 }
 
-function FilterGroup({
-  label,
-  value,
-  options,
-  onSelect,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onSelect: (value: string) => void;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-1">
-      <div className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</div>
-      <div className="flex flex-wrap gap-1">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => onSelect(option)}
-            className={`rounded-lg px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition ${
-              value === option ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'
-            }`}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+function BookingCard({ booking, index }: { booking: Booking; index: number }) {
+  const pax = getPrimaryTraveller(booking);
+  const route = getRouteLabel(booking);
+  const st = getStatusColor(booking.status);
 
-function SortButton({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: string;
-  onClick: () => void;
-}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] transition ${
-        active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-      }`}
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 > 1 ? 0 : index * 0.05 }}
+      style={{ background: '#fff', borderRadius: 20, padding: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}
     >
-      <ArrowUpDown size={14} />
-      {children}
-    </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: booking.type === 'bus' ? '#FFF7ED' : '#EFF6FF', color: booking.type === 'bus' ? '#EA580C' : '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {booking.type === 'bus' ? <Bus size={18} /> : <Plane size={18} />}
+          </div>
+          <div>
+            <div style={{ fontFamily: 'Poppins', fontWeight: 800, fontSize: 14, color: '#0F172A' }}>{booking.bookingId}</div>
+            <div style={{ fontFamily: 'Inter', fontWeight: 800, fontSize: 11, color: '#64748B', marginTop: 2 }}>PNR: {booking.pnr}</div>
+          </div>
+        </div>
+        <div style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 12, background: st.bg, color: st.text, fontFamily: 'Inter', fontWeight: 800, fontSize: 10, textTransform: 'uppercase' }}>
+          {booking.status}
+        </div>
+      </div>
+
+      <div style={{ background: '#F8FAFC', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ fontFamily: 'Inter', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Traveller</span>
+          <span style={{ fontFamily: 'Inter', fontSize: 13, color: '#0F172A', fontWeight: 700 }}>{pax.name}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ fontFamily: 'Inter', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Route</span>
+          <span style={{ fontFamily: 'Inter', fontSize: 13, color: '#0F172A', fontWeight: 700 }}>{route}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ fontFamily: 'Inter', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Date</span>
+          <span style={{ fontFamily: 'Inter', fontSize: 13, color: '#0F172A', fontWeight: 700 }}>{new Date(booking.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontFamily: 'Inter', fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Amount Paid</div>
+          <div style={{ fontFamily: 'Poppins', fontSize: 18, color: '#0F172A', fontWeight: 800 }}>{currencyFormatter.format(booking.finalAmount)}</div>
+        </div>
+        <button style={{ padding: '8px 16px', background: '#0F172A', color: '#fff', border: 'none', borderRadius: 10, fontFamily: 'Inter', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          Details
+        </button>
+      </div>
+    </motion.div>
   );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="card-premium p-4 sm:p-5">
-      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</p>
-      <p className="admin-kpi-value mt-3 font-poppins font-black tracking-tight text-slate-950">{value}</p>
-    </div>
-  );
-}
-
-function toggleSort(
-  nextField: SortField,
-  currentField: SortField,
-  currentDirection: 'asc' | 'desc',
-  setSortField: (field: SortField) => void,
-  setSortDirection: (direction: 'asc' | 'desc') => void,
-) {
-  if (currentField === nextField) {
-    setSortDirection(currentDirection === 'asc' ? 'desc' : 'asc');
-    return;
-  }
-
-  setSortField(nextField);
-  setSortDirection('desc');
 }

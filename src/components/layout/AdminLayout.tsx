@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, Bus, Search, Bell, CalendarDays, ChevronDown } from 'lucide-react';
 import { AdminSidebar } from './AdminSidebar';
+import { useAuthStore } from '../../store/authStore';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -9,95 +10,84 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, subtitle }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+  const user = useAuthStore((s) => s.user);
+  const userInitials = user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'A';
+
+  const todayStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Handle window resize to auto-close sidebar on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 1024) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
-    <div className="admin-panel-shell flex min-h-screen">
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F8FAFC' }}>
       <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      <main className="flex-1 overflow-auto lg:ml-0">
-        {/* Mobile Header */}
-        <div className="lg:hidden flex items-center justify-between px-6 py-4 glass sticky top-0 z-30 mb-2">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsSidebarOpen(true)} 
-              className="p-2.5 -ml-2 text-gray-600 bg-white/50 rounded-xl shadow-sm hover:bg-white transition-colors"
-            >
-              <Menu size={20} />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-linear-to-br from-red-600 to-rose-700 rounded-xl flex items-center justify-center shadow-md shadow-red-200">
-                <Bus size={18} className="text-white" />
+      <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {/* Top Header Bar (Desktop & Mobile) */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #E2E8F0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {!isSidebarOpen && (
+              <button onClick={() => setIsSidebarOpen(true)} style={{ padding: 8, background: '#F1F5F9', border: 'none', color: '#0F172A', cursor: 'pointer', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Menu size={20} />
+              </button>
+            )}
+            
+            {/* Logo/Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #111827, #374151)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Bus size={14} color="#fff" />
               </div>
-              <div>
-                <span className="font-bold text-gray-900 font-poppins text-sm leading-tight block">Admin Panel</span>
-                <span className="text-[10px] text-gray-400 font-inter uppercase tracking-wider">BusFlight</span>
-              </div>
+              <span style={{ fontFamily: 'Poppins', fontWeight: 800, fontSize: 16, color: '#111827' }}>Admin</span>
             </div>
           </div>
-          <button 
-            onClick={() => window.history.back()} 
-            className="text-gray-500 font-inter text-xs font-bold px-3 py-1.5 bg-gray-100 rounded-lg active:scale-95 transition-transform"
-          >
-            Back
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Desktop Stats (Hidden on mobile) */}
+            <div className="hidden lg:flex" style={{ alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: '6px 12px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 13 }}>
+                <CalendarDays size={14} color="#94A3B8" />
+                <span style={{ fontFamily: 'Inter', fontWeight: 600, color: '#334155' }}>{todayStr}</span>
+              </div>
+            </div>
+
+            {/* Profile Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 12px 4px 4px', background: '#fff', border: '1px solid #E2E8F0', borderRadius: 16, cursor: 'pointer' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 10, background: '#DC2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Poppins', fontWeight: 700, fontSize: 11 }}>
+                {userInitials}
+              </div>
+              <span className="hidden sm:inline" style={{ fontFamily: 'Inter', fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{user?.name || 'Admin'}</span>
+              <ChevronDown size={14} color="#94A3B8" />
+            </div>
+          </div>
         </div>
 
         {/* Content Area */}
-        <div className="mx-auto flex min-h-full w-full max-w-[1400px] flex-col px-5 py-6 sm:px-8 sm:py-8 lg:px-10 admin-content-gap">
-          <div className="hidden lg:flex items-center justify-between gap-6">
-            <div className="min-w-0">
-              <h1 className="text-[2.9rem] leading-none font-black font-poppins text-slate-950 tracking-tight">{title}</h1>
-              {subtitle && (
-                <p className="mt-3 text-slate-500 font-inter text-[1.05rem] font-medium">{subtitle}</p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm min-w-[320px]">
-                <Search size={18} className="text-slate-400" />
-                <span className="flex-1 text-sm font-semibold text-slate-400">Search bookings, users...</span>
-                <span className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-500">⌘K</span>
-              </div>
-
-              <button className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm">
-                <Bell size={18} />
-                <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">3</span>
-              </button>
-
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-500 font-poppins text-sm font-black text-white">AS</div>
-                <div className="leading-tight">
-                  <p className="text-sm font-black text-slate-900">Admin</p>
-                  <p className="text-xs font-semibold text-slate-400">Super Admin</p>
-                </div>
-                <ChevronDown size={16} className="text-slate-400" />
-              </div>
+        <div style={{ padding: '32px 40px', maxWidth: 1400, margin: '0 auto', width: '100%', boxSizing: 'border-box' }} className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+          
+          {/* Page Header */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <h1 style={{ fontFamily: 'Poppins', fontSize: window.innerWidth > 640 ? 36 : 28, fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '-1px' }}>{title}</h1>
+              {subtitle && <p style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: 500, color: '#64748B', margin: 0 }}>{subtitle}</p>}
             </div>
           </div>
 
-          <div className="hidden lg:flex justify-end">
-            <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <CalendarDays size={18} className="text-slate-500" />
-              <span className="text-sm font-black text-slate-700">Wednesday, 29 April 2026</span>
-              <ChevronDown size={16} className="text-slate-400" />
-            </div>
-          </div>
-
-          {/* Header Section */}
-          <div className="flex flex-col gap-2 lg:hidden">
-            <h1 className="text-3xl sm:text-4xl font-black font-poppins text-gray-900 tracking-tight">{title}</h1>
-            {subtitle && (
-              <p className="text-gray-500 font-inter text-sm font-medium flex items-center gap-2">
-                <span className="w-8 h-[2px] bg-red-600/20 rounded-full" />
-                {subtitle}
-              </p>
-            )}
-          </div>
-
-          <div className="flex-1">
+          {/* Page Content */}
+          <div style={{ width: '100%' }}>
             {children}
           </div>
+
         </div>
       </main>
     </div>
