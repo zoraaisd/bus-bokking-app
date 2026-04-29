@@ -1,252 +1,396 @@
-import React from 'react';
+import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Users, Bus, Plane, IndianRupee, Ticket, ArrowUpRight, Menu } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
+import {
+  ArrowUpRight,
+  BadgeIndianRupee,
+  Bus,
+  CalendarDays,
+  CircleEllipsis,
+  Crown,
+  Plane,
+  Ticket,
+  Users,
+} from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { AdminLayout } from '../../components/layout/AdminLayout';
+import {
+  buildAdminUsers,
+  getActiveBookingCount,
+  getPrimaryTraveller,
+} from '../../data/adminSeed';
 import { useBookingStore } from '../../store/bookingStore';
 
-const COLORS = ['#DC2626','#3B82F6','#F97316','#10B981'];
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+
+const chartData = [
+  { day: 'Thu', revenue: 2200, bookings: 0.1 },
+  { day: 'Fri', revenue: 3800, bookings: 0.6 },
+  { day: 'Sat', revenue: 5300, bookings: 0.7 },
+  { day: 'Sun', revenue: 4400, bookings: 0.3 },
+  { day: 'Mon', revenue: 7200, bookings: 0.6 },
+  { day: 'Tue', revenue: 8200, bookings: 0.3 },
+  { day: 'Wed', revenue: 9600, bookings: 0.4 },
+];
+
+const transportColors = ['#ff4d5a', '#3164f4'];
 
 export default function AdminDashboardPage() {
-  const bookings = useBookingStore((s) => s.bookings);
-  const revenue = useBookingStore((s) => s.getTotalRevenue());
-  const busB = bookings.filter((b) => b.type === 'bus');
-  const flyB = bookings.filter((b) => b.type === 'flight');
-  const confirmed = bookings.filter((b) => b.status === 'confirmed');
+  const bookings = useBookingStore((state) => state.bookings);
+  const totalRevenue = useBookingStore((state) => state.getTotalRevenue());
 
-  const last7 = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i));
-    const label = d.toLocaleDateString('en-IN', { weekday: 'short' });
-    const dayBookings = bookings.filter((b) => new Date(b.bookingDate).toDateString() === d.toDateString());
-    const rev = dayBookings.reduce((s, b) => s + b.finalAmount, 0);
-    return { day: label, bookings: dayBookings.length + (i === 6 ? confirmed.length : 0), revenue: rev + (i === 6 ? revenue * 0.3 : 0) };
-  });
-
-  const monthData = [
-    { month: 'Jan', bus: 42, flight: 28, revenue: 182000 },
-    { month: 'Feb', bus: 38, flight: 31, revenue: 210000 },
-    { month: 'Mar', bus: 55, flight: 40, revenue: 295000 },
-    { month: 'Apr', bus: 61, flight: 45 + flyB.length, revenue: 340000 + revenue },
-  ];
-
-  const pieData = [
-    { name: 'Bus', value: busB.length || 1 },
-    { name: 'Flight', value: flyB.length || 1 },
-  ];
+  const busBookings = bookings.filter((booking) => booking.type === 'bus');
+  const flightBookings = bookings.filter((booking) => booking.type === 'flight');
+  const activeBookings = getActiveBookingCount(bookings);
+  const users = buildAdminUsers(bookings);
 
   const stats = [
-    { id:'s1', label:'Total Bookings', value: bookings.length, sub: `${confirmed.length} active`, icon: Ticket, bg: '#FEF2F2', ic: '#DC2626', delta: '+14%' },
-    { id:'s2', label:'Total Revenue', value: `₹${(revenue/1000).toFixed(0)}K`, sub: 'This month', icon: IndianRupee, bg: '#ECFDF5', ic: '#10B981', delta: '+8%' },
-    { id:'s3', label:'Bus Bookings', value: busB.length, sub: `₹${busB.reduce((s,b)=>s+b.finalAmount,0).toLocaleString()} earned`, icon: Bus, bg: '#FFF7ED', ic: '#F97316', delta: '' },
-    { id:'s4', label:'Flight Bookings', value: flyB.length, sub: `₹${flyB.reduce((s,b)=>s+b.finalAmount,0).toLocaleString()} earned`, icon: Plane, bg: '#EFF6FF', ic: '#3B82F6', delta: '' },
+    {
+      label: 'Total Bookings',
+      value: bookings.length,
+      note: `${activeBookings} active right now`,
+      icon: Ticket,
+      iconWrap: 'bg-rose-50 text-rose-500',
+    },
+    {
+      label: 'Total Revenue',
+      value: currencyFormatter.format(totalRevenue),
+      note: 'Across all seeded admin bookings',
+      icon: BadgeIndianRupee,
+      iconWrap: 'bg-emerald-50 text-emerald-500',
+    },
+    {
+      label: 'Bus Bookings',
+      value: busBookings.length,
+      note: `${currencyFormatter.format(busBookings.reduce((sum, booking) => sum + booking.finalAmount, 0))} earned`,
+      icon: Bus,
+      iconWrap: 'bg-orange-50 text-orange-500',
+    },
+    {
+      label: 'Flight Bookings',
+      value: flightBookings.length,
+      note: `${currencyFormatter.format(flightBookings.reduce((sum, booking) => sum + booking.finalAmount, 0))} earned`,
+      icon: Plane,
+      iconWrap: 'bg-blue-50 text-blue-500',
+    },
   ];
 
-  const userSet = new Map([
-    ['Arjun Sharma', { email:'arjun@gmail.com', trips: bookings.filter(b => (b as any).passengers?.[0]?.name === 'Arjun Sharma' || (b as any).travellers?.[0]?.name === 'Arjun Sharma').length || 2, spend: '₹5,197' }],
-    ['Priya Nair',   { email:'priya@gmail.com',   trips: 1, spend: '₹499' }],
-    ['Rahul Mehta',  { email:'rahul@corp.com',    trips: 1, spend: '₹6,599' }],
-    ['Sneha Reddy',  { email:'sneha@gmail.com',   trips: 1, spend: '₹866' }],
-    ['Amit Joshi',   { email:'amit@gmail.com',    trips: 1, spend: '₹2,799' }],
-  ]);
+  const transportSplit = [
+    { name: 'Bus', value: busBookings.length },
+    { name: 'Flight', value: flightBookings.length },
+  ];
 
   return (
-    <AdminLayout 
-      title="Dashboard" 
-      subtitle={new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+    <AdminLayout
+      title="Dashboard"
+      subtitle="Welcome back! Here's what's happening today."
     >
-      <div className="flex flex-col gap-10">
-        {/* Stat Cards Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {stats.map((s, i) => (
-            <motion.div 
-              key={s.id} 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              transition={{ delay: i * 0.1 }}
-              className="card-premium p-6 sm:p-8 relative overflow-hidden group shadow-hover"
+      <div className="flex flex-col gap-4 lg:gap-5">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat, index) => (
+            <motion.article
+              key={stat.label}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="card-premium p-4 sm:p-5"
             >
-              {/* Background Accent */}
-              <div 
-                className="absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-10 group-hover:scale-125 transition-transform duration-500"
-                style={{ background: s.ic }}
-              />
-              
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: s.bg }}>
-                  <s.icon size={24} color={s.ic} strokeWidth={2.5} />
+              <div className="flex items-start justify-between gap-3">
+                <div className={`flex h-[78px] w-[78px] shrink-0 items-center justify-center rounded-3xl ${stat.iconWrap}`}>
+                  <stat.icon size={34} strokeWidth={2.2} />
                 </div>
-                {s.delta && (
-                  <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black tracking-wide">
-                    <ArrowUpRight size={12} strokeWidth={3} /> {s.delta}
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-600">
+                  <ArrowUpRight size={12} strokeWidth={3} />
+                  Live
+                </span>
               </div>
-              
-              <div className="space-y-1">
-                <h4 className="text-gray-400 font-inter text-xs font-black uppercase tracking-[0.1em]">{s.label}</h4>
-                <p className="font-poppins font-black text-3xl text-gray-900 tracking-tight">{s.value}</p>
-                <div className="pt-4 flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <p className="font-inter text-xs text-gray-500 font-bold">{s.sub}</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-10">
-          {/* Main Trend Chart */}
-          <div className="lg:col-span-2 card-premium p-6 sm:p-10 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
-              <div>
-                <h3 className="font-poppins font-black text-xl text-gray-900">Booking Analytics</h3>
-                <p className="font-inter text-sm text-gray-500 font-medium">Daily booking volume & performance</p>
+              <div className="mt-5">
+                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">{stat.label}</p>
+                <p className="mt-2 font-poppins text-[2.2rem] leading-none font-black tracking-tight text-slate-950">
+                  {stat.value}
+                </p>
+                <p className="mt-3 text-sm font-semibold text-slate-500">{stat.note}</p>
               </div>
-              <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl">
-                {['7D', '1M', '3M'].map(t => (
-                  <button key={t} className={`px-4 py-1.5 text-xs font-black rounded-xl transition-all ${t === '7D' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>{t}</button>
+            </motion.article>
+          ))}
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.65fr_1fr]">
+          <div className="card-premium p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-[2rem] leading-none font-poppins font-black tracking-tight text-slate-950">Booking Analysis</h2>
+                <p className="mt-2 text-sm font-medium text-slate-500">Daily booking volume and revenue momentum</p>
+              </div>
+
+              <div className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+                {['7D', '30D', '90D'].map((item, index) => (
+                  <span
+                    key={item}
+                    className={`rounded-lg px-4 py-2 text-sm font-black ${index === 0 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                  >
+                    {item}
+                  </span>
                 ))}
               </div>
             </div>
-            
-            <div className="h-[300px] w-full">
+
+            <div className="mt-6 h-[360px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={last7} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
+                <AreaChart data={chartData}>
                   <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#DC2626" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#DC2626" stopOpacity={0}/>
+                    <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#18a36f" stopOpacity={0.22} />
+                      <stop offset="95%" stopColor="#18a36f" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="bookingsFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ff4d5a" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#ff4d5a" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                  <XAxis 
-                    dataKey="day" 
-                    tick={{ fontSize: 11, fontFamily: 'Inter', fontWeight: 700, fill: '#94A3B8' }} 
-                    axisLine={false} 
+                  <CartesianGrid stroke="#dbe7f4" strokeDasharray="4 4" vertical={false} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 700 }} />
+                  <YAxis
+                    yAxisId="left"
+                    axisLine={false}
                     tickLine={false}
-                    dy={15}
+                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(value: number) => (value === 0 ? '0' : `${value / 1000}K`)}
                   />
-                  <YAxis 
-                    tick={{ fontSize: 11, fontFamily: 'Inter', fontWeight: 700, fill: '#94A3B8' }} 
-                    axisLine={false} 
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    axisLine={false}
                     tickLine={false}
-                    dx={-10}
+                    tick={{ fill: '#ff4d5a', fontSize: 12, fontWeight: 700 }}
+                    domain={[0, 8]}
                   />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: 16, border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', padding: '12px 16px' }} 
-                    itemStyle={{ fontFamily: 'Inter', fontWeight: 800, fontSize: 12 }}
+                  <Tooltip
+                    formatter={(value: unknown, name: unknown) => [
+                      name === 'revenue' ? currencyFormatter.format(Number(value ?? 0)) : Number(value ?? 0),
+                      name === 'revenue' ? 'Revenue (₹)' : 'Bookings',
+                    ]}
+                    contentStyle={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="bookings" 
-                    stroke="#DC2626" 
-                    strokeWidth={4} 
-                    dot={{ r: 6, fill: '#DC2626', stroke: '#fff', strokeWidth: 3 }} 
-                    activeDot={{ r: 8, strokeWidth: 0 }} 
+                  <Legend
+                    verticalAlign="top"
+                    align="left"
+                    iconType="circle"
+                    wrapperStyle={{ paddingBottom: 20, fontWeight: 700 }}
+                    formatter={(value) => (value === 'revenue' ? 'Revenue (₹)' : 'Bookings')}
                   />
-                </LineChart>
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#18a36f"
+                    strokeWidth={3}
+                    fill="url(#revenueFill)"
+                    dot={{ r: 6, fill: '#18a36f', stroke: '#fff', strokeWidth: 2 }}
+                  />
+                  <Area
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="bookings"
+                    stroke="#ff4d5a"
+                    strokeWidth={3}
+                    fill="url(#bookingsFill)"
+                    dot={{ r: 5, fill: '#ff4d5a', stroke: '#fff', strokeWidth: 2 }}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Type Distribution */}
-          <div className="card-premium p-6 sm:p-10 flex flex-col shadow-sm">
-            <h3 className="font-poppins font-black text-xl text-gray-900 mb-2">Transport Split</h3>
-            <p className="font-inter text-sm text-gray-500 font-medium mb-10">Bus vs Flight preference</p>
-            
-            <div className="flex-1 min-h-[250px]">
+          <div className="card-premium p-5 sm:p-6">
+            <h2 className="text-[2rem] leading-none font-poppins font-black tracking-tight text-slate-950">Transport Split</h2>
+            <p className="mt-2 text-sm font-medium text-slate-500">How your customers are choosing to travel</p>
+
+            <div className="mt-8 h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie 
-                    data={pieData} 
-                    cx="50%" 
-                    cy="50%" 
-                    innerRadius={70} 
-                    outerRadius={95} 
-                    dataKey="value" 
-                    paddingAngle={8}
-                    cornerRadius={10}
+                  <Pie
+                    data={transportSplit}
+                    dataKey="value"
+                    startAngle={180}
+                    endAngle={-180}
+                    innerRadius={76}
+                    outerRadius={112}
+                    paddingAngle={2}
+                    cornerRadius={6}
                   >
-                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                    {transportSplit.map((item, index) => (
+                      <Cell key={item.name} fill={transportColors[index]} />
+                    ))}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 16, border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            
-            <div className="space-y-4 pt-6">
-              {pieData.map((d, i) => (
-                <div key={d.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ background: COLORS[i] }} />
-                    <span className="font-inter text-sm font-bold text-gray-600">{d.name}</span>
-                  </div>
-                  <span className="font-poppins font-black text-sm text-gray-900">{d.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {/* Activity & Performance Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
-          {/* Monthly Bar Chart */}
-          <div className="lg:col-span-3 card-premium p-6 sm:p-10 shadow-sm">
-            <h3 className="font-poppins font-black text-xl text-gray-900 mb-10">Revenue Streams</h3>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                  <XAxis 
-                    dataKey="month" 
-                    tick={{ fontSize: 11, fontFamily: 'Inter', fontWeight: 700, fill: '#94A3B8' }} 
-                    axisLine={false} 
-                    tickLine={false}
-                    dy={15}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 11, fontFamily: 'Inter', fontWeight: 700, fill: '#94A3B8' }} 
-                    axisLine={false} 
-                    tickLine={false}
-                  />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} />
-                  <Bar dataKey="bus" fill="#DC2626" radius={[6,6,0,0]} barSize={20} />
-                  <Bar dataKey="flight" fill="#3B82F6" radius={[6,6,0,0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            <div className="space-y-4">
+              {transportSplit.map((item, index) => {
+                const percentage = Math.round((item.value / bookings.length) * 100);
 
-          {/* User Activity */}
-          <div className="lg:col-span-2 card-premium p-6 sm:p-10 shadow-sm">
-            <div className="flex items-center justify-between mb-10">
-              <h3 className="font-poppins font-black text-xl text-gray-900">Elite Users</h3>
-              <button className="text-red-600 font-inter text-xs font-black uppercase tracking-widest hover:underline">View All</button>
-            </div>
-            <div className="space-y-6">
-              {Array.from(userSet.entries()).slice(0, 5).map(([name, info], i) => (
-                <div key={name} className="flex items-center gap-4 group cursor-pointer">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-poppins font-black text-lg shadow-lg group-hover:scale-110 transition-transform duration-300" style={{ background: `hsl(${i * 60},70%,50%)` }}>
-                    {name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-poppins font-black text-sm text-gray-900 truncate">{name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <p className="font-inter text-[10px] font-black text-gray-400 uppercase tracking-wider">{info.trips} Total Bookings</p>
+                return (
+                  <div key={item.name} className="flex items-center justify-between text-base">
+                    <div className="flex items-center gap-3">
+                      <span className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: transportColors[index] }} />
+                      <span className="font-bold text-slate-700">{item.name}</span>
                     </div>
+                    <span className="font-black text-slate-700">
+                      {item.value} ({percentage}%)
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-poppins font-black text-sm text-gray-900">{info.spend}</p>
-                    <p className="font-inter text-[10px] font-bold text-gray-400">Total Spent</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.65fr_1fr]">
+          <div className="card-premium p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                  <CalendarDays size={18} />
+                </div>
+                <div>
+                  <h2 className="text-[1.8rem] leading-none font-poppins font-black tracking-tight text-slate-950">Recent Bookings</h2>
+                </div>
+              </div>
+
+              <button className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50">
+                View All Bookings
+              </button>
+            </div>
+
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[820px]">
+                <thead className="bg-slate-50">
+                  <tr>
+                    {['PNR', 'Customer', 'Route', 'Type', 'Travel Date', 'Amount', 'Status', ''].map((heading) => (
+                      <th key={heading} className="px-4 py-4 text-left text-[12px] font-black text-slate-400">
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.slice(0, 4).map((booking) => {
+                    const traveller = getPrimaryTraveller(booking);
+                    const route = booking.type === 'bus'
+                      ? `${booking.bus.from} → ${booking.bus.to}`
+                      : `${booking.flight.from} → ${booking.flight.to}`;
+
+                    return (
+                      <tr key={booking.bookingId} className="border-b border-slate-100 last:border-b-0">
+                        <td className="px-4 py-4 text-sm font-bold text-slate-700">{booking.pnr}</td>
+                        <td className="px-4 py-4 text-sm font-bold text-slate-900">{traveller.name}</td>
+                        <td className="px-4 py-4 text-sm font-semibold text-slate-600">{route}</td>
+                        <td className="px-4 py-4">
+                          <span className={`rounded-full px-3 py-1 text-xs font-black ${booking.type === 'bus' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                            {booking.type === 'bus' ? 'Bus' : 'Flight'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-sm font-semibold text-slate-600">
+                          {new Date(booking.travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="px-4 py-4 text-sm font-bold text-slate-900">{currencyFormatter.format(booking.finalAmount)}</td>
+                        <td className="px-4 py-4">
+                          <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                            booking.status === 'confirmed'
+                              ? 'bg-emerald-50 text-emerald-600'
+                              : booking.status === 'completed'
+                                ? 'bg-blue-50 text-blue-600'
+                                : 'bg-red-50 text-red-500'
+                          }`}>
+                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-right text-slate-400">
+                          <CircleEllipsis size={18} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="card-premium p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                <Crown size={18} />
+              </div>
+              <h2 className="text-[1.8rem] leading-none font-poppins font-black tracking-tight text-slate-950">Admin Snapshot</h2>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-4">
+              <SnapshotCard
+                icon={<Users size={20} className="text-sky-500" />}
+                iconWrap="bg-sky-50"
+                value={users.length.toString()}
+                label="Total Users"
+              />
+              <SnapshotCard
+                icon={<Ticket size={20} className="text-rose-500" />}
+                iconWrap="bg-rose-50"
+                value={bookings.length.toString()}
+                label="Total Bookings"
+              />
+              <SnapshotCard
+                icon={<BadgeIndianRupee size={20} className="text-emerald-500" />}
+                iconWrap="bg-emerald-50"
+                value={currencyFormatter.format(totalRevenue)}
+                label="Total Revenue"
+              />
+            </div>
+          </div>
+        </section>
       </div>
     </AdminLayout>
+  );
+}
+
+function SnapshotCard({
+  icon,
+  iconWrap,
+  value,
+  label,
+}: {
+  icon: ReactNode;
+  iconWrap: string;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+      <div className="flex items-center gap-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${iconWrap}`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-[2rem] leading-none font-poppins font-black tracking-tight text-slate-950">{value}</p>
+          <p className="mt-2 text-sm font-bold text-slate-500">{label}</p>
+        </div>
+      </div>
+    </div>
   );
 }
